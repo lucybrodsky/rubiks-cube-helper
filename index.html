@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cube Guide — Rubik's Cube Solver</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f3ef;
+    --fg: #1a1a18;
+    --muted: #8a8880;
+    --border: #dddbd6;
+    --accent: #c8441a;
+    --card-bg: #ffffff;
+    --tag-bg: #eeecea;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* ── HEADER ── */
+  header {
+    padding: 48px 40px 32px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+  }
+
+  header h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(28px, 5vw, 44px);
+    font-weight: 400;
+    letter-spacing: -0.5px;
+  }
+
+  header span {
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* ── LAYOUT ── */
+  main {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 48px 40px 80px;
+  }
+
+  /* ── INTRO ── */
+  .intro {
+    margin-bottom: 48px;
+    animation: fadeUp 0.5s ease both;
+  }
+
+  .intro p {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.8;
+    max-width: 520px;
+  }
+
+  .intro p strong {
+    color: var(--fg);
+    font-weight: 500;
+  }
+
+  /* ── CHAT BUBBLE ── */
+  .chat-bubble {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 28px 32px;
+    margin-bottom: 40px;
+    animation: fadeUp 0.5s 0.1s ease both;
+  }
+
+  .chat-bubble p {
+    font-size: 15px;
+    line-height: 1.9;
+    color: var(--fg);
+  }
+
+  /* ── SECTION LABEL ── */
+  .section-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  /* ── METHOD PICKER ── */
+  .method-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+    margin-bottom: 48px;
+    animation: fadeUp 0.5s 0.2s ease both;
+  }
+
+  .method-btn {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 24px 20px;
+    cursor: pointer;
+    text-align: left;
+    transition: border-color 0.15s, background 0.15s;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .method-btn:hover {
+    border-color: var(--fg);
+  }
+
+  .method-btn.active {
+    border-color: var(--accent);
+    background: #fef9f7;
+  }
+
+  .method-btn .method-name {
+    font-size: 13px;
+    font-weight: 500;
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  .method-btn .method-desc {
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .method-btn .method-tag {
+    display: inline-block;
+    margin-top: 12px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    background: var(--tag-bg);
+    padding: 3px 8px;
+    border-radius: 2px;
+    color: var(--muted);
+  }
+
+  .method-btn.active .method-tag {
+    background: #f5ddd6;
+    color: var(--accent);
+  }
+
+  /* ── EXPERIENCE PICKER ── */
+  #experience-section {
+    margin-bottom: 48px;
+    animation: fadeUp 0.4s ease both;
+  }
+
+  .experience-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+  }
+
+  .exp-btn {
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 16px 12px;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    background: var(--card-bg);
+    color: var(--fg);
+    transition: border-color 0.15s, background 0.15s;
+    text-align: left;
+    line-height: 1.5;
+  }
+
+  .exp-btn:hover { border-color: var(--fg); }
+  .exp-btn.active { border-color: var(--accent); background: #fef9f7; color: var(--accent); }
+
+  /* ── HINT CARD ── */
+  #hints-section {
+    animation: fadeUp 0.4s ease both;
+  }
+
+  .stage-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    background: var(--card-bg);
+  }
+
+  .stage {
+    border-bottom: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .stage:last-child { border-bottom: none; }
+
+  .stage-header {
+    padding: 18px 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: background 0.1s;
+    user-select: none;
+  }
+
+  .stage-header:hover { background: var(--bg); }
+
+  .stage-header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .stage-num {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    min-width: 24px;
+  }
+
+  .stage-title {
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .stage-arrow {
+    font-size: 11px;
+    color: var(--muted);
+    transition: transform 0.2s;
+  }
+
+  .stage.open .stage-arrow { transform: rotate(90deg); }
+
+  .stage-body {
+    display: none;
+    padding: 0 24px 24px 64px;
+    border-top: 1px solid var(--border);
+  }
+
+  .stage.open .stage-body { display: block; }
+
+  .hint-block {
+    margin-top: 16px;
+  }
+
+  .hint-block + .hint-block {
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+  }
+
+  .hint-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .hint-text {
+    font-size: 13px;
+    line-height: 1.9;
+    color: var(--fg);
+  }
+
+  .alg {
+    display: inline-block;
+    background: var(--tag-bg);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 2px 8px;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    margin: 2px 2px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .tip {
+    margin-top: 12px;
+    padding: 12px 16px;
+    background: var(--bg);
+    border-left: 2px solid var(--accent);
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+
+  /* ── EMPTY STATE ── */
+  #empty-state {
+    text-align: center;
+    padding: 60px 0;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 2;
+    animation: fadeUp 0.5s 0.3s ease both;
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 600px) {
+    header, main { padding-left: 20px; padding-right: 20px; }
+    .experience-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Cube Guide</h1>
+  <span>3×3 solving methods</span>
+</header>
+
+<main>
+
+  <div class="intro">
+    <p>Hi! I'll walk you through solving a Rubik's cube. <strong>Choose your method below,</strong> then tell me your experience level — and I'll show you the right hints for where you are.</p>
+  </div>
+
+  <!-- METHOD PICKER -->
+  <div class="section-label">01 — Choose your method</div>
+  <div class="method-grid" id="method-grid">
+    <button class="method-btn" data-method="beginner" onclick="selectMethod(this)">
+      <span class="method-name">Beginner Method</span>
+      <span class="method-desc">Layer by layer. No algorithms to memorize at first.</span>
+      <span class="method-tag">Best for beginners</span>
+    </button>
+    <button class="method-btn" data-method="f2l" onclick="selectMethod(this)">
+      <span class="method-name">Beginner + F2L</span>
+      <span class="method-desc">Beginner method but pair the first two layers together.</span>
+      <span class="method-tag">Intermediate</span>
+    </button>
+    <button class="method-btn" data-method="cfop" onclick="selectMethod(this)">
+      <span class="method-name">CFOP</span>
+      <span class="method-desc">Cross, F2L, OLL, PLL. The most popular speed method.</span>
+      <span class="method-tag">Advanced</span>
+    </button>
+  </div>
+
+  <!-- EXPERIENCE PICKER (hidden until method chosen) -->
+  <div id="experience-section" style="display:none">
+    <div class="section-label">02 — Your experience level</div>
+    <div class="experience-grid" id="experience-grid">
+      <button class="exp-btn" data-exp="none" onclick="selectExp(this)">I know nothing about Rubik's cubes</button>
+      <button class="exp-btn" data-exp="some" onclick="selectExp(this)">I know a little — basic moves, not much notation</button>
+      <button class="exp-btn" data-exp="familiar" onclick="selectExp(this)">I know notation and basic algorithms but I'm rusty</button>
+    </div>
+  </div>
+
+  <!-- HINTS (hidden until experience chosen) -->
+  <div id="hints-section" style="display:none">
+    <div class="section-label">03 — Your guide</div>
+    <div class="stage-list" id="stage-list"></div>
+  </div>
+
+  <!-- EMPTY STATE -->
+  <div id="empty-state">
+    Select a method above to get started.<br>
+    <span style="font-size:11px">No account needed. No ads. Just the algorithms.</span>
+  </div>
+
+</main>
+
+<script>
+// ─────────────────────────────────────────────
+// DATA
+// ─────────────────────────────────────────────
+
+const NOTATION_PRIMER = `<strong>Notation quick-reference:</strong> Letters mean faces — F (Front), B (Back), U (Up), D (Down), L (Left), R (Right). A plain letter = clockwise 90°. A letter with ' (prime) = counter-clockwise. A letter with 2 = 180°. Example: R' means turn the Right face counter-clockwise.`;
+
+const CONTENT = {
+
+  beginner: {
+    none: [
+      {
+        title: "Understand the cube",
+        hints: [
+          { label: "What you're looking at", text: "A 3×3 Rubik's cube has 6 faces, each one a different color. There are 3 types of pieces: centers (the middle piece on each face — they never move relative to each other), edges (pieces with 2 colors), and corners (pieces with 3 colors). Your goal is to get all 9 stickers on each face to match." },
+          { label: "The golden rule", text: "The center piece defines the color of that face. So if the white center is on top, the top face will be white when solved. Never try to move the centers — it's the edges and corners that you manipulate." },
+        ]
+      },
+      {
+        title: "Learn basic moves",
+        hints: [
+          { label: "Notation", text: NOTATION_PRIMER },
+          { label: "Practice these moves", text: `Hold the cube in front of you with white on top, green facing you. Try these: <span class='alg'>R</span> <span class='alg'>R'</span> <span class='alg'>U</span> <span class='alg'>U'</span> <span class='alg'>F</span> <span class='alg'>F'</span>. Do each one slowly, watch what happens to the pieces, then undo it.` },
+          { label: "Tip", text: `<div class='tip'>Don't rush this step. Understanding what each move does will make everything else much easier.</div>` },
+        ]
+      },
+      {
+        title: "Step 1 — White cross",
+        hints: [
+          { label: "Goal", text: "Get the 4 white edge pieces (the ones with white + another color) onto the top face, forming a plus sign. Each edge should also match the center below it — so the white-green edge goes above the green center." },
+          { label: "How to do it", text: "This step is intuitive — no set algorithm. Find a white edge piece, figure out where it belongs, and move it there without disturbing pieces already placed. If it's on the bottom, spin the bottom layer to line it up under its home column, then do <span class='alg'>F2</span> to bring it up. If it's in the middle layer, use <span class='alg'>U</span> moves to reposition." },
+          { label: "Tip", text: `<div class='tip'>It's okay to temporarily disturb a placed edge to solve another one — just make sure you put it back.</div>` },
+        ]
+      },
+      {
+        title: "Step 2 — White corners",
+        hints: [
+          { label: "Goal", text: "Place the 4 white corner pieces to complete the white face. Each corner belongs between its two matching centers (e.g. white-green-red corner goes between the green and red centers)." },
+          { label: "Find your corner", text: "Look for white corners in the bottom layer (yellow face side). Rotate the bottom layer <span class='alg'>D</span> until the corner is directly below where it belongs." },
+          { label: "The algorithm", text: `Repeat this sequence until the corner pops into place: <span class='alg'>R'</span> <span class='alg'>D'</span> <span class='alg'>R</span> <span class='alg'>D</span>. It may take 1–5 repetitions depending on the corner's orientation.` },
+          { label: "Tip", text: `<div class='tip'>If a white corner is stuck in the top layer in the wrong place, do <span class='alg'>R'</span> <span class='alg'>D'</span> <span class='alg'>R</span> <span class='alg'>D</span> once to kick it to the bottom, then solve it normally.</div>` },
+        ]
+      },
+      {
+        title: "Step 3 — Middle layer edges",
+        hints: [
+          { label: "Goal", text: "Flip the cube so yellow is on top. Now place the 4 middle-layer edges (the edges with no yellow). These go between the centers in the middle row." },
+          { label: "Find the piece", text: "Look for a non-yellow edge in the top layer. Rotate <span class='alg'>U</span> until that edge's front color matches the front center. Then check which direction it needs to go — left or right." },
+          { label: "Goes right", text: `<span class='alg'>U</span> <span class='alg'>R</span> <span class='alg'>U'</span> <span class='alg'>R'</span> <span class='alg'>U'</span> <span class='alg'>F'</span> <span class='alg'>U</span> <span class='alg'>F</span>` },
+          { label: "Goes left", text: `<span class='alg'>U'</span> <span class='alg'>L'</span> <span class='alg'>U</span> <span class='alg'>L</span> <span class='alg'>U</span> <span class='alg'>F</span> <span class='alg'>U'</span> <span class='alg'>F'</span>` },
+          { label: "Tip", text: `<div class='tip'>If a middle edge is already in the middle layer but in the wrong place, run either algorithm to "eject" it to the top, then solve it normally.</div>` },
+        ]
+      },
+      {
+        title: "Step 4 — Yellow cross",
+        hints: [
+          { label: "Goal", text: "Make a yellow cross on the top face. The cross edges don't need to match the side centers yet — just get the yellow cross shape." },
+          { label: "Look at the top", text: "You'll see one of these patterns: a dot (no yellow edges), an L-shape (2 yellow edges forming a corner), or a horizontal line (2 yellow edges across from each other). The algorithm to run is always the same." },
+          { label: "Algorithm", text: `<span class='alg'>F</span> <span class='alg'>R</span> <span class='alg'>U</span> <span class='alg'>R'</span> <span class='alg'>U'</span> <span class='alg'>F'</span>` },
+          { label: "How many times", text: "Dot → run it 3 times. L-shape → hold so L opens to top-left, run it 2 times. Line → hold horizontally, run it once." },
+        ]
+      },
+      {
+        title: "Step 5 — Orient yellow edges",
+        hints: [
+          { label: "Goal", text: "Now match each yellow edge to its side center. Rotate the top layer <span class='alg'>U</span> to find a position where at least one edge already matches its center. Face that side." },
+          { label: "Algorithm", text: `<span class='alg'>R</span> <span class='alg'>U</span> <span class='alg'>R'</span> <span class='alg'>U</span> <span class='alg'>R</span> <span class='alg'>U2</span> <span class='alg'>R'</span> <span class='alg'>U</span>. This cycles the other 3 edges counterclockwise. Repeat if needed.` },
+        ]
+      },
+      {
+        title: "Step 6 — Yellow corners (position)",
+        hints: [
+          { label: "Goal", text: "Get the yellow corners into the right positions (not oriented yet — just each corner in its correct home corner, even if twisted)." },
+          { label: "Check", text: "Look for a corner that's already in the right spot (its 3 colors match the surrounding centers, even if rotated). Hold that corner at the front-right." },
+          { label: "Algorithm", text: `<span class='alg'>U</span> <span class='alg'>R</span> <span class='alg'>U'</span> <span class='alg'>L'</span> <span class='alg'>U</span> <span class='alg'>R'</span> <span class='alg'>U'</span> <span class='alg'>L</span>. This cycles the other 3 corners. Repeat until all 4 are in the right spots.` },
+          { label: "Tip", text: `<div class='tip'>If no corner is in the right spot, run the algorithm once from any position — you'll get at least one into place.</div>` },
+        ]
+      },
+      {
+        title: "Step 7 — Yellow corners (orient)",
+        hints: [
+          { label: "Goal", text: "Twist each yellow corner so yellow faces up. This solves the cube." },
+          { label: "Algorithm", text: `Hold the cube with a misoriented corner at the front-right-top. Repeat <span class='alg'>R'</span> <span class='alg'>D'</span> <span class='alg'>R</span> <span class='alg'>D</span> until that corner's yellow faces up (2 or 4 times). <strong>Do not touch the U layer yet.</strong>` },
+          { label: "Then", text: "Rotate only the top layer <span class='alg'>U</span> to bring the next misoriented corner to the front-right-top. Repeat the algorithm. Do this for each corner." },
+          { label: "Tip", text: `<div class='tip'>The cube will look scrambled during this step — that's normal! Only move the U layer between corners. Never move any other layer until all 4 corners are done.</div>` },
+        ]
+      },
+    ],
+
+    some: [
+      {
+        title: "Step 1 — White cross",
+        hints: [
+          { label: "Goal", text: "White center on top. Get all 4 white edges into the top face forming a cross, with each edge's second color matching its side center." },
+          { label: "Common trick", text: `If a white edge is in the bottom layer under its target slot, spin <span class='alg'>D</span> to align it, then do <span class='alg'>F2</span>. If it's in the middle layer, do <span class='alg'>U</span> moves to get it to the top first.` },
+        ]
+      },
+      {
+        title: "Step 2 — White corners",
+        hints: [
+          { label: "Algorithm", text: `Find the white corner in the bottom layer below its target. Repeat <span class='alg'>R'</span> <span class='alg'>D'</span> <span class='alg'>R</span> <span class='alg'>D</span> until it slots in correctly.` },
+        ]
+      },
+      {
+        title: "Step 3 — Middle edges",
+        hints: [
+          { label: "Goes right", text: `Align front color to front center with <span class='alg'>U</span>, then: <span class='alg'>U</span> <span class='alg'>R</span> <span class='alg'>U'</span> <span class='alg'>R'</span> <span class='alg'>U'</span> <span class='alg'>F'</span> <span class='alg'>U</span> <span class='alg'>F</span>` },
+          { label: "Goes left", text: `<span class='alg'>U'</span> <span class='alg'>L'</span> <span class='alg'>U</span> <span class='alg'>L</span> <span class='alg'>U</span> <span class='alg'>F</span> <span class='alg'>U'</span> <span class='alg'>F'</span>` },
+        ]
+      },
+      {
+        title: "Step 4 — Yellow cross",
+        hints: [
+          { label: "Algorithm", text: `<span class='alg'>F</span> <span class='alg'>R</span> <span class='alg'>U</span> <span class='alg'>R'</span> <span class='alg'>U'</span> <span class='alg'>F'</span> — Dot: ×3, L (open to top-left): ×2, Line (horizontal): ×1` },
+        ]
+      },
+      {
+        title: "Step 5 — Orient yellow edges",
+        hints: [
+          { label: "Algorithm", text: `Face the matched edge. Run: <span class='alg'>R</span> <span class='alg'>U</span> <span class='alg'>R'</span> <span class='alg'>U</span> <span class='alg'>R</span> <span class='alg'>U2</span> <span class='alg'>R'</span> <span class='alg'>U</span>. Cycles 3 edges counter-clockwise. Repeat if needed.` },
+        ]
+      },
+      {
+        title: "Step 6 — Position yellow corners",
+        hints: [
+          { label: "Algorithm", text: `Find a correct corner, hold at front-right: <span class='alg'>U</span> <span class='alg'>R</span> <span class='alg'>U'</span> <span class='alg'>L'</span> <span class='alg'>U</span> <span class='alg'>R'</span> <span class='alg'>U'</span> <span class='alg'>L</span>` },
+        ]
+      },
+      {
+        title: "Step 7 — Orient yellow corners",
+        hints: [
+          { label: "Algorithm", text: `Front-right-top corner misoriented: repeat <span class='alg'>R'</span> <span class='alg'>D'</span> <span class='alg'>R</span> <span class='alg'>D</span> until yellow faces up. Then <span class='alg'>U</span> to next corner. Never touch other layers between corners.` },
+        ]
+      },
+    ],
+
+    familiar: [
+      {
+        title: "White cross", hints: [{ label: "Reminder", text: `White center up. 4 white edges, each matching its side center. Use intuition + <span class='alg'>D</span> rotations and <span class='alg'>F2</span> insertions.` }]
+      },
+      {
+        title: "White corners", hints: [{ label: "Reminder", text: `<span class='alg'>R'</span> <span class='alg'>D'</span> <span class='alg'>R</span> <span class='alg'>D</span> repeated until solved. Kick stuck top-layer corners down first.` }]
+      },
+      {
+        title: "Middle edges", hints: [
+          { label: "Right insert", text: `<span class='alg'>U R U' R' U' F' U F</span>` },
+          { label: "Left insert", text: `<span class='alg'>U' L' U L U F U' F'</span>` },
+        ]
+      },
+      {
+        title: "Yellow cross", hints: [{ label: "Algorithm", text: `<span class='alg'>F R U R' U' F'</span> — Dot ×3, L (top-left) ×2, Line ×1` }]
+      },
+      {
+        title: "Edge permutation", hints: [{ label: "Algorithm", text: `<span class='alg'>R U R' U R U2 R' U</span>` }]
+      },
+      {
+        title: "Corner permutation", hints: [{ label: "Algorithm", text: `<span class='alg'>U R U' L' U R' U' L</span>` }]
+      },
+      {
+        title: "Corner orientation", hints: [{ label: "Algorithm", text: `<span class='alg'>R' D' R D</span> × (2 or 4). Move only U between corners. Never rotate the whole cube mid-step.` }]
+      },
+    ]
+  },
+
+  f2l: {
+    none: [
+      {
+        title: "Learn beginner method first",
+        hints: [{ label: "Prerequisite", text: "Beginner + F2L builds on the standard beginner method. Make sure you can solve the cube with the beginner method before trying this. Switch to Beginner Method and get comfortable first." }]
+      }
+    ],
+    some: [
+      {
+        title: "White cross",
+        hints: [{ label: "Same as beginner", text: `White center up. Place all 4 white edges with matching side colors. Use <span class='alg'>D</span> alignment + <span class='alg'>F2</span> insertions.` }]
+      },
+      {
+        title: "F2L — First two layers together",
+        hints: [
+          { label: "The idea", text: "Instead of doing white corners and middle edges separately, you pair them up and insert them together. Each F2L pair is a white corner + its matching middle edge." },
+          { label: "Find a pair", text: "Yellow on top. Find a white corner in the top layer. Find the middle edge that matches it (same 2 side colors). Get them next to each other in the top layer." },
+          { label: "Pair and insert — both in top layer", text: `Line up the corner above its target slot with white facing front. Put the matching edge next to it. Typical right-slot insert: <span class='alg'>U R U' R'</span>. Or left-slot: <span class='alg'>U' L' U L</span>.` },
+          { label: "Tip", text: `<div class='tip'>There are many F2L cases. Don't memorize all of them yet — try to work out logical pairings. With practice you'll see them intuitively. There are free F2L trainers at algdb.net.</div>` },
+        ]
+      },
+      {
+        title: "Yellow cross",
+        hints: [{ label: "Algorithm", text: `<span class='alg'>F R U R' U' F'</span> — Dot ×3, L (top-left) ×2, Line ×1` }]
+      },
+      {
+        title: "Edge permutation",
+        hints: [{ label: "Algorithm", text: `Face the solved edge. <span class='alg'>R U R' U R U2 R' U</span>` }]
+      },
+      {
+        title: "Corner permutation",
+        hints: [{ label: "Algorithm", text: `Correct corner at front-right. <span class='alg'>U R U' L' U R' U' L</span>` }]
+      },
+      {
+        title: "Corner orientation",
+        hints: [{ label: "Algorithm", text: `<span class='alg'>R' D' R D</span> repeated per corner. Only move <span class='alg'>U</span> between corners.` }]
+      },
+    ],
+    familiar: [
+      {
+        title: "White cross", hints: [{ label: "Goal", text: "Standard cross — 4 white edges matched to side centers." }]
+      },
+      {
+        title: "F2L pairs",
+        hints: [
+          { label: "Intuitive pairing", text: `Locate corner + matching edge in top layer. Manipulate with <span class='alg'>U</span> moves to pair them, then insert. Common cases: corner white-up needs 1 extra setup move. Corner white-front or white-right has its own insertion pattern.` },
+          { label: "When an edge is stuck in middle", text: `Do a quick insertion (<span class='alg'>U R U' R'</span>) to eject it to the top, then solve the pair normally.` },
+        ]
+      },
+      {
+        title: "OLL (Yellow cross + full top)",
+        hints: [{ label: "2-look OLL", text: `Cross: <span class='alg'>F R U R' U' F'</span> then full OLL. If you know full OLL, identify your case and run it.` }]
+      },
+      {
+        title: "PLL (Permutation)",
+        hints: [{ label: "2-look PLL", text: `Corners first: <span class='alg'>U R U' L' U R' U' L</span>, then edges: <span class='alg'>R U R' U R U2 R' U</span>.` }]
+      },
+    ]
+  },
+
+  cfop: {
+    none: [
+      {
+        title: "Start with Beginner Method",
+        hints: [{ label: "Advice", text: "CFOP (Fridrich method) is the most popular speedcubing method, but it requires learning 78+ algorithms. If you're brand new to cubing, we strongly recommend learning the beginner method first. Switch to Beginner Method above to get started." }]
+      }
+    ],
+    some: [
+      {
+        title: "CFOP Overview",
+        hints: [{ label: "The four stages", text: "CFOP stands for Cross, F2L (First Two Layers), OLL (Orient Last Layer — 57 algorithms), PLL (Permute Last Layer — 21 algorithms). Most speedcubers learn 2-look OLL and 2-look PLL first to reduce that to just 10 algorithms." }]
+      },
+      {
+        title: "Cross",
+        hints: [
+          { label: "Goal", text: "Solve 4 bottom edges efficiently — typically done in 8 moves or fewer by planning ahead. Most solvers do this on the bottom (white facing down) while looking ahead to F2L pieces." },
+          { label: "Practice", text: `Aim to solve the cross in under 8 moves. Scramble, then just practice the cross over and over. Try to plan 1–2 moves ahead before you execute.` },
+        ]
+      },
+      {
+        title: "F2L",
+        hints: [
+          { label: "Intuitive first", text: "Learn to pair corners and edges intuitively before memorizing algorithms. The 4 pairs are inserted efficiently without disrupting the cross." },
+          { label: "Basic cases", text: `Right slot: corner white facing front, edge above → <span class='alg'>U R U' R'</span>. Left slot: <span class='alg'>U' L' U L</span>. There are 41 full F2L cases — learn them gradually at algdb.net or cubeskills.com.` },
+        ]
+      },
+      {
+        title: "2-Look OLL",
+        hints: [
+          { label: "Step 1 — Cross", text: `<span class='alg'>F R U R' U' F'</span> (for L-shape and line) and <span class='alg'>F U R U' R' F'</span> (for dot and line). Same logic as beginner cross.` },
+          { label: "Step 2 — Orientations (7 cases)", text: `Sune: <span class='alg'>R U R' U R U2 R'</span>. Anti-Sune: <span class='alg'>R' U' R U' R' U2 R</span>. Learn all 7 OCLL cases — there are good image references at algdb.net.` },
+        ]
+      },
+      {
+        title: "2-Look PLL",
+        hints: [
+          { label: "Step 1 — Corners (2 cases)", text: `A-perm: <span class='alg'>R' F R' B2 R F' R' B2 R2</span>. If all corners wrong, do any corner PLL first.` },
+          { label: "Step 2 — Edges (4 cases)", text: `U-perm (CW): <span class='alg'>R U' R U R U R U' R' U' R2</span>. U-perm (CCW): <span class='alg'>R2 U R U R' U' R' U' R' U R'</span>. Z-perm: <span class='alg'>M2 U M2 U M' U2 M2 U2 M'</span>. H-perm: <span class='alg'>M2 U M2 U2 M2 U M2</span>.` },
+        ]
+      },
+    ],
+    familiar: [
+      {
+        title: "Cross (bottom)", hints: [{ label: "Goal", text: `Solve in ≤8 moves, planning ahead. Inspect during the 15-second window. Aim for cross solutions you can fully plan in inspection.` }]
+      },
+      {
+        title: "F2L", hints: [{ label: "All 41 cases", text: `Know all standard, awkward, and edge/corner separated cases. Track look-ahead to the next pair while executing the current one. Aim for smooth, pauseless F2L.` }]
+      },
+      {
+        title: "OLL", hints: [{ label: "All 57 cases", text: `Know full OLL. If not yet, use 2-look: <span class='alg'>F R U R' U' F'</span> + 7 OCLL cases. Work toward full OLL recognition.` }]
+      },
+      {
+        title: "PLL", hints: [{ label: "All 21 cases", text: `Know full PLL. If not yet, 2-look PLL: corner perms then edge perms. Prioritize AUF (Adjust U Face) recognition speed.` }]
+      },
+    ]
+  }
+};
+
+// ─────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────
+
+let selectedMethod = null;
+let selectedExp = null;
+
+function selectMethod(btn) {
+  document.querySelectorAll('.method-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedMethod = btn.dataset.method;
+  selectedExp = null;
+
+  // Show experience section
+  const expSection = document.getElementById('experience-section');
+  expSection.style.display = 'block';
+  expSection.style.animation = 'none';
+  void expSection.offsetWidth;
+  expSection.style.animation = 'fadeUp 0.4s ease both';
+
+  document.querySelectorAll('.exp-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('hints-section').style.display = 'none';
+  document.getElementById('empty-state').style.display = 'none';
+}
+
+function selectExp(btn) {
+  document.querySelectorAll('.exp-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedExp = btn.dataset.exp;
+  renderHints();
+}
+
+function renderHints() {
+  const hintsSection = document.getElementById('hints-section');
+  const stageList = document.getElementById('stage-list');
+  const stages = CONTENT[selectedMethod]?.[selectedExp] || [];
+
+  stageList.innerHTML = '';
+
+  stages.forEach((stage, i) => {
+    const el = document.createElement('div');
+    el.className = 'stage';
+    el.innerHTML = `
+      <div class="stage-header" onclick="toggleStage(this)">
+        <div class="stage-header-left">
+          <span class="stage-num">0${i+1}</span>
+          <span class="stage-title">${stage.title}</span>
+        </div>
+        <span class="stage-arrow">▶</span>
+      </div>
+      <div class="stage-body">
+        ${stage.hints.map(h => `
+          <div class="hint-block">
+            <div class="hint-label">${h.label}</div>
+            <div class="hint-text">${h.text}</div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    stageList.appendChild(el);
+  });
+
+  // Open first stage by default
+  const first = stageList.querySelector('.stage');
+  if (first) first.classList.add('open');
+
+  hintsSection.style.display = 'block';
+  hintsSection.style.animation = 'none';
+  void hintsSection.offsetWidth;
+  hintsSection.style.animation = 'fadeUp 0.4s ease both';
+}
+
+function toggleStage(header) {
+  const stage = header.parentElement;
+  stage.classList.toggle('open');
+}
+</script>
+</body>
+</html>
