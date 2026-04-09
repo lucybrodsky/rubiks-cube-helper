@@ -1078,7 +1078,7 @@ async function startScan() {
     const img1type = photoData[1].split(';')[0].split(':')[1];
     const img2type = photoData[2].split(';')[0].split(':')[1];
 
-    const prompt = `You are a Rubik's cube state reader. The user has provided two photos of their 3×3 Rubik's cube.
+    const systemPrompt = `You are a Rubik's cube state reader. The user has provided two photos of their 3×3 Rubik's cube.
 - Photo 1 shows the White, Orange, and Blue faces.
 - Photo 2 shows the Yellow, Red, and Green faces.
 
@@ -1121,7 +1121,7 @@ Be precise — a wrong sticker will give an incorrect solution.`;
           content: [
             { type: 'image', source: { type: 'base64', media_type: img1type, data: img1b64 } },
             { type: 'image', source: { type: 'base64', media_type: img2type, data: img2b64 } },
-            { type: 'text', text: prompt }
+            { type: 'text', text: systemPrompt }
           ]
         }]
       })
