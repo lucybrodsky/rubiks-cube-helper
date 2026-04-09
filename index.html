@@ -1105,7 +1105,7 @@ Center stickers are fixed: U[4]=W, D[4]=Y, F[4]=G, B[4]=B, R[4]=R, L[4]=O.
 Be precise — a wrong sticker will give an incorrect solution.`;
 
     // Use a CORS proxy to bypass browser restrictions
-    const proxyUrl = 'https://corsproxy.io/?';
+    const proxyUrl = 'https://api.allorigins.win/raw?url=';
     const response = await fetch(proxyUrl + encodeURIComponent('https://api.anthropic.com/v1/messages'), {
       method: 'POST',
       headers: {
