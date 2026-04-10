@@ -9,6 +9,8 @@ app.use(express.json({ limit: '50mb' }));
 app.post('/scan', async (req, res) => {
   const { image1, image2, apiKey } = req.body;
   
+  console.log('Received request with API key:', apiKey ? apiKey.substring(0, 10) + '...' : 'missing');
+  
   if (!apiKey) {
     return res.status(400).json({ error: 'API key required' });
   }
@@ -19,23 +21,7 @@ app.post('/scan', async (req, res) => {
     const img1type = image1.split(';')[0].split(':')[1];
     const img2type = image2.split(';')[0].split(':')[1];
 
-    const systemPrompt = `You are a Rubik's cube state reader. The user has provided two photos of their 3×3 Rubik's cube.
-- Photo 1 shows the White, Orange, and Blue faces.
-- Photo 2 shows the Yellow, Red, and Green faces.
-
-Return ONLY a JSON object with this exact structure (no explanation, no markdown):
-{
-  "U": "WWWWWWWWW",
-  "D": "YYYYYYYYY",
-  "F": "GGGGGGGGG",
-  "B": "BBBBBBBBB",
-  "R": "RRRRRRRRR",
-  "L": "OOOOOOOOO"
-}
-
-Each face string is 9 characters, reading left-to-right, top-to-bottom.
-Use W=White, Y=Yellow, R=Red, O=Orange, B=Blue, G=Green.
-U=white top, D=yellow bottom, F=green front, B=blue back, R=red right, L=orange left.`;
+    const systemPrompt = `You are a Rubik's cube state reader. Return ONLY JSON: {"U":"9chars","D":"9chars","F":"9chars","B":"9chars","R":"9chars","L":"9chars"} using W,Y,R,O,B,G. U=white top, D=yellow bottom, F=green front.`;
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -46,7 +32,7 @@ U=white top, D=yellow bottom, F=green front, B=blue back, R=red right, L=orange 
       },
       body: JSON.stringify({
         model: 'claude-3-haiku-20240307',
-        max_tokens: 1000,
+        max_tokens: 500,
         messages: [{
           role: 'user',
           content: [
@@ -60,7 +46,8 @@ U=white top, D=yellow bottom, F=green front, B=blue back, R=red right, L=orange 
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Anthropic API error ${response.status}: ${errorText}`);
+      console.error('Anthropic error:', response.status, errorText);
+      return res.status(response.status).json({ error: `Anthropic API error: ${errorText}` });
     }
 
     const data = await response.json();
