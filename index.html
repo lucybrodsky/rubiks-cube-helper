@@ -1074,66 +1074,24 @@ async function startScan() {
       localStorage.setItem('anthropic_key', apiKey);
     }
 
-    const img1b64 = photoData[1].split(',')[1];
-    const img2b64 = photoData[2].split(',')[1];
-    const img1type = photoData[1].split(';')[0].split(':')[1];
-    const img2type = photoData[2].split(';')[0].split(':')[1];
-
-    const systemPrompt = `You are a Rubik's cube state reader. The user has provided two photos of their 3×3 Rubik's cube.
-- Photo 1 shows the White, Orange, and Blue faces.
-- Photo 2 shows the Yellow, Red, and Green faces.
-
-Your job:
-1. Read all 9 stickers on each of the 6 faces carefully.
-2. Output the cube state in standard notation used by cube solvers.
-
-Use this color-to-letter mapping:
-W = White, Y = Yellow, R = Red, O = Orange, B = Blue, G = Green
-
-Output ONLY a JSON object with this exact structure (no explanation, no markdown):
-{
-  "U": "WWWWWWWWW",
-  "D": "YYYYYYYYY",
-  "F": "GGGGGGGGG",
-  "B": "BBBBBBBBB",
-  "R": "RRRRRRRRR",
-  "L": "OOOOOOOOO"
-}
-
-Each face string is 9 characters, reading left-to-right, top-to-bottom.
-Face orientation: U=white on top, D=yellow on bottom, F=green facing you, B=blue facing away, R=red on right, L=orange on left.
-Center stickers are fixed: U[4]=W, D[4]=Y, F[4]=G, B[4]=B, R[4]=R, L[4]=O.
-Be precise — a wrong sticker will give an incorrect solution.`;
-
-    // Use a CORS proxy to bypass browser restrictions
-    const proxyUrl = 'https://api.allorigins.win/raw?url=';
-    const response = await fetch(proxyUrl + encodeURIComponent('https://api.anthropic.com/v1/messages'), {
+    // Send to YOUR local server
+    const response = await fetch('http://localhost:3000/scan', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-3-haiku-20240307',
-        max_tokens: 1000,
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type: img1type, data: img1b64 } },
-            { type: 'image', source: { type: 'base64', media_type: img2type, data: img2b64 } },
-            { type: 'text', text: systemPrompt }
-          ]
-        }]
+        image1: photoData[1],
+        image2: photoData[2],
+        apiKey: apiKey
       })
     });
 
     if (!response.ok) {
       if (response.status === 401) {
         localStorage.removeItem('anthropic_key');
-        throw new Error('Invalid API key. Please refresh and try again.');
+        throw new Error('Invalid API key');
       }
-      throw new Error(`API error ${response.status}`);
+      const err = await response.json();
+      throw new Error(err.error || `Server error ${response.status}`);
     }
 
     const data = await response.json();
@@ -1147,6 +1105,7 @@ Be precise — a wrong sticker will give an incorrect solution.`;
       throw new Error('Could not parse cube state from the photo. Try retaking the photos with better lighting and all stickers clearly visible.');
     }
 
+    // Validate
     const faces = ['U','D','F','B','R','L'];
     for (const f of faces) {
       if (!cubeState[f] || cubeState[f].length !== 9) {
@@ -1157,6 +1116,7 @@ Be precise — a wrong sticker will give an incorrect solution.`;
     setStatus('Solving the cube', 'loading');
     await new Promise(r => setTimeout(r, 300));
 
+    // Now solve
     const solution = solveCube(cubeState);
 
     if (!solution || solution.length === 0) {
