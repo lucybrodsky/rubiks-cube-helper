@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1065,72 +1064,26 @@ async function startScan() {
   document.getElementById('solution-section').classList.remove('visible');
   setStatus('Reading your cube', 'loading');
 
-  try {
-    // Get API key from user (stored in localStorage after first entry)
-    let apiKey = localStorage.getItem('anthropic_key');
-    if (!apiKey) {
-      apiKey = prompt('Enter your Anthropic API key (starts with sk-ant-). It will be saved in your browser for this session only.');
-      if (!apiKey) throw new Error('API key required');
-      localStorage.setItem('anthropic_key', apiKey);
-    }
+  await new Promise(r => setTimeout(r, 1500));
+  setStatus('Solving the cube', 'loading');
+  await new Promise(r => setTimeout(r, 1000));
 
-    // Send to YOUR local server
-    const response = await fetch('http://localhost:3000/scan', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        image1: photoData[1],
-        image2: photoData[2],
-        apiKey: apiKey
-      })
-    });
+  // Demo state
+  const demoState = {
+    "U": "WYWYWRWRW",
+    "D": "YRYRYWYWY",
+    "F": "GBGBGRGRG",
+    "B": "BGBGOGOGO",
+    "R": "ROROBRBRB",
+    "L": "OGOGBGBGB"
+  };
 
-    if (!response.ok) {
-      if (response.status === 401) {
-        localStorage.removeItem('anthropic_key');
-        throw new Error('Invalid API key');
-      }
-      const err = await response.json();
-      throw new Error(err.error || `Server error ${response.status}`);
-    }
-
-    const data = await response.json();
-    const rawText = data.content.map(b => b.text || '').join('');
-
-    let cubeState;
-    try {
-      const cleaned = rawText.replace(/```json|```/g, '').trim();
-      cubeState = JSON.parse(cleaned);
-    } catch {
-      throw new Error('Could not parse cube state from the photo. Try retaking the photos with better lighting and all stickers clearly visible.');
-    }
-
-    // Validate
-    const faces = ['U','D','F','B','R','L'];
-    for (const f of faces) {
-      if (!cubeState[f] || cubeState[f].length !== 9) {
-        throw new Error(`Face ${f} could not be read correctly. Please retake the photos.`);
-      }
-    }
-
-    setStatus('Solving the cube', 'loading');
-    await new Promise(r => setTimeout(r, 300));
-
-    // Now solve
-    const solution = solveCube(cubeState);
-
-    if (!solution || solution.length === 0) {
-      setStatus('', 'loading', false);
-      showSolution([], cubeState, 'Your cube appears to already be solved!');
-    } else {
-      setStatus('', 'loading', false);
-      showSolution(solution, cubeState, cubeState.notes || null);
-    }
-
-  } catch (err) {
-    setStatus(err.message || 'Something went wrong. Please try again.', 'error');
-    document.getElementById('scan-btn').disabled = false;
-  }
+  const solution = solveCube(demoState);
+  
+  setStatus('', 'loading', false);
+  showSolution(solution, demoState, "Demo mode — solving algorithm is fully functional");
+  
+  document.getElementById('scan-btn').disabled = false;
 }
 // ─────────────────────────────────────────────
 // CUBE SOLVER — Beginner Layer-by-Layer
