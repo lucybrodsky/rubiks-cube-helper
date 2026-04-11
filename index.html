@@ -1068,7 +1068,7 @@ async function startScan() {
   setStatus('Solving the cube', 'loading');
   await new Promise(r => setTimeout(r, 1000));
 
-  // Demo state
+  // Demo scrambled cube state
   const demoState = {
     "U": "WYWYWRWRW",
     "D": "YRYRYWYWY",
@@ -1078,9 +1078,10 @@ async function startScan() {
     "L": "OGOGBGBGB"
   };
 
-  const solution = solveCube(demoState);
-  
   setStatus('', 'loading', false);
+  
+  // Call the solver
+  const solution = solveCube(demoState);
   showSolution(solution, demoState, "Demo mode — solving algorithm is fully functional");
   
   document.getElementById('scan-btn').disabled = false;
