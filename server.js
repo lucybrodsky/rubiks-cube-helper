@@ -3,16 +3,24 @@ const cors = require('cors');
 const app = express();
 const PORT = 3000;
 
+// Your API key is read from the environment — never hardcoded in the file
+const API_KEY = process.env.ANTHROPIC_API_KEY;
+
+if (!API_KEY) {
+  console.error('❌ Missing ANTHROPIC_API_KEY environment variable.');
+  console.error('   Start the server like this:');
+  console.error('   ANTHROPIC_API_KEY=sk-ant-... node server.js');
+  process.exit(1);
+}
+
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
 app.post('/scan', async (req, res) => {
-  const { image1, image2, apiKey } = req.body;
-  
-  console.log('Received request with API key:', apiKey ? apiKey.substring(0, 10) + '...' : 'missing');
-  
-  if (!apiKey) {
-    return res.status(400).json({ error: 'API key required' });
+  const { image1, image2 } = req.body;
+
+  if (!image1 || !image2) {
+    return res.status(400).json({ error: 'Two images are required.' });
   }
 
   try {
@@ -54,7 +62,7 @@ Replace each 9-char string with the actual sticker colors you observe. Be precis
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey,
+        'x-api-key': API_KEY,
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
