@@ -656,19 +656,6 @@
       <p>Take <strong>two photos</strong> of your cube — one showing three faces, one showing the other three. The AI will read your cube's state and generate a step-by-step solution.</p>
     </div>
 
-    <!-- API Key input -->
-    <div style="margin-bottom:32px">
-      <div class="section-label">00 — Your API key</div>
-      <div style="display:flex;gap:10px;align-items:center">
-        <input type="password" id="api-key-input" placeholder="sk-ant-..." style="
-          font-family:'DM Mono',monospace; font-size:12px;
-          padding:12px 16px; border:1px solid var(--border); border-radius:2px;
-          background:var(--card-bg); color:var(--fg); flex:1; outline:none;
-        " oninput="checkScanReady()">
-        <span id="apikey-hint" style="font-size:11px;color:var(--muted)">Required to call the AI</span>
-      </div>
-    </div>
-
     <!-- Photo helper -->
     <div class="section-label">01 — How to photograph your cube</div>
     <div class="face-diagram" style="margin-bottom:32px">
@@ -1060,8 +1047,7 @@ function removePhoto(e, slot) {
 }
 
 function checkScanReady() {
-  const key = (document.getElementById('api-key-input')?.value || '').trim();
-  document.getElementById('scan-btn').disabled = !(photoData[1] && photoData[2] && key);
+  document.getElementById('scan-btn').disabled = !(photoData[1] && photoData[2]);
 }
 
 function setStatus(msg, type='loading', visible=true) {
@@ -1079,20 +1065,12 @@ async function startScan() {
   setStatus('Reading your cube', 'loading');
 
   try {
-    const apiKey = (document.getElementById('api-key-input')?.value || '').trim();
-    if (!apiKey) {
-      setStatus('API key is required. Enter it above.', 'error');
-      document.getElementById('scan-btn').disabled = false;
-      return;
-    }
-
     const response = await fetch('http://localhost:3000/scan', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         image1: photoData[1],
-        image2: photoData[2],
-        apiKey: apiKey
+        image2: photoData[2]
       })
     });
 
