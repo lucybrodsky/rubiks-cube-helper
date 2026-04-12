@@ -1,4 +1,5 @@
 require('dotenv').config();
+console.log('Key loaded:', process.env.ANTHROPIC_API_KEY ? 'YES' : 'NO');
 const express = require('express');
 const cors = require('cors');
 const app = express();
