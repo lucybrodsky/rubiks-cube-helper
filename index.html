@@ -656,6 +656,19 @@
       <p>Take <strong>two photos</strong> of your cube — one showing three faces, one showing the other three. The AI will read your cube's state and generate a step-by-step solution.</p>
     </div>
 
+    <!-- API Key input -->
+    <div style="margin-bottom:32px">
+      <div class="section-label">00 — Your API key</div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <input type="password" id="api-key-input" placeholder="sk-ant-..." style="
+          font-family:'DM Mono',monospace; font-size:12px;
+          padding:12px 16px; border:1px solid var(--border); border-radius:2px;
+          background:var(--card-bg); color:var(--fg); flex:1; outline:none;
+        " oninput="checkScanReady()">
+        <span id="apikey-hint" style="font-size:11px;color:var(--muted)">Required to call the AI</span>
+      </div>
+    </div>
+
     <!-- Photo helper -->
     <div class="section-label">01 — How to photograph your cube</div>
     <div class="face-diagram" style="margin-bottom:32px">
@@ -1047,7 +1060,8 @@ function removePhoto(e, slot) {
 }
 
 function checkScanReady() {
-  document.getElementById('scan-btn').disabled = !(photoData[1] && photoData[2]);
+  const key = (document.getElementById('api-key-input')?.value || '').trim();
+  document.getElementById('scan-btn').disabled = !(photoData[1] && photoData[2] && key);
 }
 
 function setStatus(msg, type='loading', visible=true) {
@@ -1064,28 +1078,62 @@ async function startScan() {
   document.getElementById('solution-section').classList.remove('visible');
   setStatus('Reading your cube', 'loading');
 
-  await new Promise(r => setTimeout(r, 1500));
-  setStatus('Solving the cube', 'loading');
-  await new Promise(r => setTimeout(r, 1000));
+  try {
+    const apiKey = (document.getElementById('api-key-input')?.value || '').trim();
+    if (!apiKey) {
+      setStatus('API key is required. Enter it above.', 'error');
+      document.getElementById('scan-btn').disabled = false;
+      return;
+    }
 
-  // Demo scrambled cube state
-  const demoState = {
-    "U": "WYWYWRWRW",
-    "D": "YRYRYWYWY",
-    "F": "GBGBGRGRG",
-    "B": "BGBGOGOGO",
-    "R": "ROROBRBRB",
-    "L": "OGOGBGBGB"
-  };
+    const response = await fetch('http://localhost:3000/scan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        image1: photoData[1],
+        image2: photoData[2],
+        apiKey: apiKey
+      })
+    });
 
-  setStatus('', 'loading', false);
-  
-  // Call the solver
-  const solution = solveCube(demoState);
-  showSolution(solution, demoState, "Demo mode — solving algorithm is fully functional");
-  
-  document.getElementById('scan-btn').disabled = false;
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error || 'Server error');
+    }
+
+    const data = await response.json();
+
+    // Extract the text content from Claude's response
+    const rawText = data.content.map(b => b.text || '').join('');
+
+    let cubeState;
+    try {
+      const cleaned = rawText.replace(/```json|```/g, '').trim();
+      cubeState = JSON.parse(cleaned);
+    } catch {
+      throw new Error('Could not parse cube state from the photo. Try retaking with better lighting.');
+    }
+
+    // Validate all 6 faces are present and 9 chars each
+    for (const f of ['U','D','F','B','R','L']) {
+      if (!cubeState[f] || cubeState[f].length !== 9) {
+        throw new Error(`Face ${f} could not be read. Please retake the photos.`);
+      }
+    }
+
+    setStatus('Solving the cube', 'loading');
+    await new Promise(r => setTimeout(r, 200));
+
+    const solution = solveCube(cubeState);
+    setStatus('', 'loading', false);
+    showSolution(solution, cubeState, cubeState.notes || null);
+
+  } catch (err) {
+    setStatus(err.message || 'Something went wrong. Please try again.', 'error');
+    document.getElementById('scan-btn').disabled = false;
+  }
 }
+
 // ─────────────────────────────────────────────
 // CUBE SOLVER — Beginner Layer-by-Layer
 // Uses a deterministic algorithm that works on the cube state
